@@ -1,0 +1,5 @@
+
+function main() {{
+    int i = 0;
+    int y = 1; int e = 2;
+}}
