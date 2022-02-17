@@ -2,14 +2,14 @@
 
 int main() 
 {
-    std::string fileData;
-    readFile("g.txt", fileData);
 
-    auto el = compile(fileData);
+    auto a = any(20);
 
-    for (int i = 0; i < el.size(); i++) {
-        std::cout << el[i].str() << '\n';
-    }
+    std::cout << a.size() << "\n";
+
+    a.set(true);
+
+    std::cout << a.size() << "\n";
 
     return 0;
 }

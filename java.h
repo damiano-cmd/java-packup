@@ -4,14 +4,9 @@
 #include <sstream>
 #include <algorithm>
 #include <vector>
-#include <memory>
-#include <tuple>
 #include <array>
 
 typedef uint8_t byte;
-typedef byte bshort[2];
-typedef byte bint[4];
-typedef byte blong[8];
 int byteSlotValues[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 enum Error {noError, outOfMemory};
 
@@ -35,6 +30,8 @@ int readFile(std::string filePath, std::string& fileData)
     return 1;
 }
 
+
+// string operators
 std::vector<std::string> splitString(std::string str, const std::string& split) {
     std::vector<std::string> strings;
     int e = 0;
@@ -65,7 +62,8 @@ std::vector<std::string> splitString(std::string str, const std::string& split) 
     return strings;
 }
 
-std::string join(std::vector<std::string> array, std::string joint) {
+std::string join(std::vector<std::string> array, std::string joint) 
+{
     std::string newtext; 
     for (int i = 0; i < array.size(); i++) {
         newtext += array[i];
@@ -76,7 +74,8 @@ std::string join(std::vector<std::string> array, std::string joint) {
     return newtext;
 }
 
-void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+void replaceAll(std::string& str, const std::string& from, const std::string& to) 
+{
     if(from.empty())
         return;
     size_t start_pos = 0;
@@ -101,19 +100,32 @@ std::array<std::string, 3> splitAt(std::string& source, int point1, int point2)
     return segments;
 }
 
+template<typename T> std::vector<T> slice(std::vector<T>& arr, int X, int Y)
+{
+    auto start = arr.begin() + X;
+    auto end = arr.begin() + Y + 1;
+ 
+    std::vector<T> result(Y - X + 1);
+ 
+    copy(start, end, result.begin());
+ 
+    return result;
+}
+
+
+// code review
 struct bracetOC {
     int open = 0;
     int close = 0;
 };
-
 struct bracetO {
     int character = 0;
     int line = 0;
     int position = 0;
 };
-
 std::vector<bracetOC> countBrackets(std::string source, char obr, char cbr, int& status) 
 {
+
     int line = 1;
     int position = 1;
     std::vector<bracetO> obn;
@@ -178,58 +190,75 @@ std::vector<std::stringstream> compile(std::string source)
     return map;
 }
 
-template<typename T> std::vector<byte> toBytes(T value) 
+
+// convert in and out of bytes
+template<typename T> std::vector<byte> toBytes(T value, int from = 0, int size = sizeof(T)) 
 {
-    std::vector<byte> bytes(sizeof(T));
-    memcpy(&bytes[0], &value, bytes.size());
+    if (from+size > sizeof(T))
+    {
+        size = sizeof(T)-from;
+    }
+    std::vector<byte> bytes(size+from);
+    memcpy(&bytes[0], &value, size+from);
     return bytes;
 }
 
-template<typename T> void copyToBytes(T value, byte* bytes) 
-{
-    memcpy(bytes, &value, sizeof(T));
-}
-
-template<typename T> T copyBytesTo(byte* bytes) 
+template<typename T> T bytesTo(byte* bytes) 
 {
     T value;
     memcpy(&value, bytes, sizeof(T));
     return value;
 }
 
-template<typename T> T* bytesTo(byte* bytes) 
+// copying 
+template<typename T> void point2Bytes(T value, byte* bytes) 
+{
+    memcpy(bytes, &value, sizeof(T));
+}
+
+template<typename T> T* pointBytes2(byte* bytes) 
 {
     T* value;
     value = (T*)bytes;
     return value;
 }
 
-bool isBinInByte(byte b, uint8_t slot) 
-{
-    return ((b/byteSlotValues[slot])%2 != 0);
-}
 
-std::array<bool, 8> byteToBinArray(byte b) 
-{
-    std::array<bool, 8> ba;
-    for (int i = 0; i < 8; i++)
-        ba[i] = ((b/byteSlotValues[i])%2 != 0);
-    return ba;
-}
-
-template<typename T> std::array<bool, sizeof(T)*8> toBinArray(T value) 
+// converting in and out of bin
+template<typename T> std::array<bool, sizeof(T)*8> toBin(T value) 
 {
     std::array<bool, sizeof(T)*8> arr;
     auto byteArray = toBytes(value);
-    for (int i = 0; i < byteArray.size(); i++) {
-        auto binArr = byteToBinArray(byteArray[i]);
+    for (int i = 0; i < byteArray.size(); i++) 
+    {
         for (int e = 0; e < 8; e++) {
-            arr[(i*8)+e] = binArr[e];
+            arr[(i*8)+e] = (byteArray[i]/byteSlotValues[e])%2 != 0;
         }
     }
     return arr;
 }
 
+template<typename T> T binTo(std::array<bool, sizeof(T)*8> arr) 
+{
+    std::array<byte, sizeof(T)> bytes;
+    for (int i = arr.size()-1; i >= 0; i--) 
+    {
+        if (arr[i]) {
+            bytes[i/8] += byteSlotValues[i];
+        }
+    } 
+    return bytesTo<T>(&bytes[0]);
+}
+
+// else
+template<typename T> bool isBinIn(T value, int slot) 
+{
+    auto bytes = toBytes(value, (int)(slot/8)+1);
+    return ((bytes[slot/8]/(byteSlotValues[slot-((slot/8)*8)]))%2 != 0);
+}
+
+
+// data
 template<typename ...Types> class TypeArray 
 {
     private:
@@ -311,5 +340,30 @@ template<typename T> class Memory
             RAM[ram].reserve(RAM[ram].capacity() + sizeof(value));
             RAM[ram].insert(RAM[ram].end(), bytes.begin(), bytes.end());
             return Error::noError;
+        }
+};
+
+template<typename T> class barray {
+    private:
+        std::vector<T> array;
+    public: 
+        barray() {};
+};
+
+class any {
+    private:
+        std::vector<byte> data;
+    public:
+        template<typename T> any(T var) 
+        {
+            set<T>(var);
+        }
+        template<typename T> void set(T var)
+        {
+            data = toBytes<T>(var);
+        }
+
+        int size() {
+            return data.size();
         }
 };
