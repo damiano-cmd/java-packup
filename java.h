@@ -112,6 +112,155 @@ template<typename T> std::vector<T> slice(std::vector<T>& arr, int X, int Y)
     return result;
 }
 
+template<typename T> class array 
+{
+    protected:
+        T* _array;
+        int16_t _size;
+        int16_t _point;
+
+    public: 
+        array(int16_t s = 4) 
+        {
+            _point = 0;
+            _size = s;
+            _array = new T[_size];
+        }
+
+        ~array()
+        {
+            delete[] _array;
+        }
+
+        void push(T value)
+        {
+            _array[_point] = value;
+            _point++;
+            if (_point >= _size) 
+            {
+                T* holdit = new T[_size];
+                memcpy(holdit, _array, _size);
+                delete[] _array;
+                
+                _size += 4;
+                _array = new T[_size];
+                memcpy(_array, holdit, _point);
+                delete[] holdit;
+            }
+        }
+
+        void swap(array& arr)
+        {
+            array arrPH(arr.size());
+            for (int16_t i = 0; i < arr.size(); i++) 
+            {
+                arrPH.push(arr[i]);
+            }
+            arr.clear();
+            for (int16_t i = 0; i < _point; i++)
+            {
+                arr.push(_array[i]);
+            }
+            clear();
+            for (int16_t i = 0; i < arrPH.size(); i++)
+            {
+                push(arrPH[i]);
+            }
+        }
+
+        void copy(array arr)
+        {
+            clear();
+            for (int16_t i = 0; i < arr.size(); i++)
+            {
+                push(arr[i]);
+            }
+            
+        }
+
+        void pop()
+        {
+            _point -= 1;
+        }
+
+        void clear()
+        {
+            _point = 0;
+        }
+
+        int16_t size() {
+            return _point;
+        }
+
+        int16_t capacity() {
+            return _size;
+        }
+
+        T& operator[](int index) {
+
+            if (index >= _point)
+            {
+                return _array[index];
+            }
+
+            printf("Index %i is an invalid index!", index);
+            return _array[0];
+        }
+};
+
+class string : public array<char>
+{
+    public:
+        string(int16_t s = 4) : array(s)
+        {}
+
+        void push(char c)
+        {
+            _array[_point] = c;
+            _point++;
+            _array[_point] = '\0';
+            if (_point >= _size) 
+            {
+                char* holdit = new char[_size];
+                memcpy(holdit, _array, _size);
+                delete[] _array;
+                
+                _size += 4;
+                _array = new char[_size];
+                memcpy(_array, holdit, _point);
+                delete[] holdit;
+            }
+        }
+
+        void operator+(char ch)
+        {
+            push(ch);
+        }
+
+        void operator+(const char * chs)
+        {
+            int siz = strlen(chs);
+            for (int16_t i = 0; i < siz; i++)
+            {
+                push(chs[i]);
+            }
+        }
+
+        void operator=(const char * chs)
+        {
+            int siz = strlen(chs);
+            clear();
+            for (int16_t i = 0; i < siz; i++)
+            {
+                push(chs[i]);
+            }
+        }
+
+        void print()
+        {
+            printf("%s", &_array[0]);
+        }
+};
 
 // code review
 struct bracetOC {
@@ -192,13 +341,13 @@ std::vector<std::stringstream> compile(std::string source)
 
 
 // convert in and out of bytes
-template<typename T> std::vector<byte> toBytes(T value, int from = 0, int size = sizeof(T)) 
+template<typename T> array<byte> toBytes(T value, int from = 0, int size = sizeof(T)) 
 {
     if (from+size > sizeof(T))
     {
         size = sizeof(T)-from;
     }
-    std::vector<byte> bytes(size+from);
+    array<byte> bytes(size+from);
     memcpy(&bytes[0], &value, size+from);
     return bytes;
 }
@@ -343,27 +492,66 @@ template<typename T> class Memory
         }
 };
 
-template<typename T> class barray {
+class any 
+{
     private:
-        std::vector<T> array;
-    public: 
-        barray() {};
-};
+        array<byte> data;
+        std::string id;
 
-class any {
-    private:
-        std::vector<byte> data;
     public:
+        any()
+        {}
+
         template<typename T> any(T var) 
         {
-            set<T>(var);
+            set(var);
         }
-        template<typename T> void set(T var)
+        
+        template<typename T> void set(T var = 0)
         {
-            data = toBytes<T>(var);
+            data.copy(toBytes<T>(var));
+            id = typeid(var).name();
         }
 
         int size() {
             return data.size();
+        }
+
+        std::string type()
+        {
+            return id;
+        }
+
+        template<typename T> bool is(T var)
+        {
+            if (id == typeid(T).name())
+            {
+                T cv = bytesTo<T>(&data[0]);
+                if (cv == var)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        template<typename T> void operator=(T var) 
+        {
+            set(var);
+        }
+
+        template<typename T> bool operator==(T var) 
+        {
+            T cv = bytesTo<T>(&data[0]);
+            if (cv == var)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        template<typename T> operator T()
+        {
+            return bytesTo<T>(&data[0]);
         }
 };

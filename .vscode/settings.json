@@ -73,6 +73,7 @@
         "complex": "cpp",
         "csignal": "cpp",
         "strstream": "cpp",
-        "cfenv": "cpp"
+        "cfenv": "cpp",
+        "shared_mutex": "cpp"
     }
 }

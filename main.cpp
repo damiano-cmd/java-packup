@@ -2,14 +2,12 @@
 
 int main() 
 {
+    any ayo = 100;
+    int i = ayo;
 
-    auto a = any(20);
-
-    std::cout << a.size() << "\n";
-
-    a.set(true);
-
-    std::cout << a.size() << "\n";
+    if (ayo == false)
+    {
+    }
 
     return 0;
 }
