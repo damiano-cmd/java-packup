@@ -1,13 +1,11 @@
 #include "java.h"
 
+function m([](std::vector<any> args) -> any {
+    return any();
+});
+
 int main() 
 {
-    any ayo = 100;
-    int i = ayo;
-
-    if (ayo == false)
-    {
-    }
-
+    
     return 0;
 }

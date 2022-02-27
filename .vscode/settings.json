@@ -74,6 +74,7 @@
         "csignal": "cpp",
         "strstream": "cpp",
         "cfenv": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "*.ipp": "cpp"
     }
 }
